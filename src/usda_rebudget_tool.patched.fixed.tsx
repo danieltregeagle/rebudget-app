@@ -12,14 +12,14 @@ import {
 import {
   FineTunePanel,
   ProjectedBudgetTable,
-  projectWithTransfers,
+  projectWithTransfers
+
 } from "./FineTune.compat.fixed";
-import type {
-  RatesData,
-  BudgetRow,
-  TransferItem,
-  MappingRow,
-} from "./FineTune.compat.fixed";
+
+type RatesData = import("./FineTune.compat.fixed").RatesData;
+type BudgetRow = import("./FineTune.compat.fixed").BudgetRow;
+type TransferItem = import("./FineTune.compat.fixed").TransferItem;
+type MappingRow = import("./FineTune.compat.fixed").MappingRow;
 
 const USDARebudgetTool = () => {
   const [wrsData, setWrsData] = useState<any[]>([]);
