@@ -13,20 +13,26 @@ import {
   FineTunePanel,
   ProjectedBudgetTable,
   projectWithTransfers,
-  type RatesData,
-  type BudgetRow,
-  type TransferItem,
-  type MappingRow,
+} from "./FineTune.compat.fixed";
+import type {
+  RatesData,
+  BudgetRow,
+  TransferItem,
+  MappingRow,
 } from "./FineTune.compat.fixed";
 
 const USDARebudgetTool = () => {
   const [wrsData, setWrsData] = useState<any[]>([]);
-  const [ratesData, setRatesData] = useState(null);
+  // Rates data can take many shapes depending on the uploaded file, so keep it
+  // flexible with `any` while allowing `null` for the initial state
+  const [ratesData, setRatesData] = useState<any>(null);
   const [personnel, setPersonnel] = useState<any[]>([]);
   const [currentSnapshot, setCurrentSnapshot] = useState<any[]>([]);
   const [newBudget, setNewBudget] = useState<any[]>([]);
   const [monthlyBurn, setMonthlyBurn] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("upload");
+  // Track which tab is active – declare as string so comparisons to other
+  // string literals don't raise "no overlap" errors
+  const [activeTab, setActiveTab] = useState<string>("upload");
   const [projectEnd, setProjectEnd] = useState("2026-08-31");
   const [errors, setErrors] = useState<any[]>([]);
   const [showTemplateUpload, setShowTemplateUpload] = useState(false);
@@ -38,7 +44,7 @@ const USDARebudgetTool = () => {
   const [mappingLog, setMappingLog] = useState<MappingRow[]>([]);
 
   // Robust number parsing helper - handles commas, currency symbols, etc.
-  const num = (v) => {
+  const num = (v: unknown) => {
     const n = Number(String(v ?? "").replace(/[^0-9.-]/g, ""));
     return Number.isFinite(n) ? n : 0;
   };
@@ -145,7 +151,7 @@ const USDARebudgetTool = () => {
     return JSON.stringify(results, null, 2);
   };
 
-  const copyToClipboard = async (text, type) => {
+  const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
       alert(`${type} copied to clipboard!`);
@@ -166,7 +172,11 @@ const USDARebudgetTool = () => {
       generateCurrentSnapshot(data);
       setErrors([]);
     } catch (error) {
-      setErrors([`Error parsing WRS file: ${error.message}`]);
+      if (error instanceof Error) {
+        setErrors([`Error parsing WRS file: ${error.message}`]);
+      } else {
+        setErrors(["Error parsing WRS file"]);
+      }
     }
   }, []);
 
@@ -236,7 +246,11 @@ const USDARebudgetTool = () => {
         faculty_fringe: processedData.fringe_rates?.faculty?.rate,
       });
     } catch (error) {
-      setErrors([`Error parsing rates file: ${error.message}`]);
+      if (error instanceof Error) {
+        setErrors([`Error parsing rates file: ${error.message}`]);
+      } else {
+        setErrors(["Error parsing rates file"]);
+      }
     }
   }, []);
 
@@ -256,7 +270,10 @@ const USDARebudgetTool = () => {
       return parseExcelWithCorrectStructure(file);
     } catch (error) {
       console.error("Error parsing Excel file:", error);
-      throw new Error(`Failed to parse WRS Excel file: ${error.message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to parse WRS Excel file: ${error.message}`);
+      }
+      throw new Error("Failed to parse WRS Excel file");
     }
   };
 
@@ -426,8 +443,8 @@ const USDARebudgetTool = () => {
     ];
   };
 
-  const generateCurrentSnapshot = (data: any) => {
-    const snapshot = data.map((row) => ({
+  const generateCurrentSnapshot = (data: any[]) => {
+    const snapshot = data.map((row: any) => ({
       ...row,
       // Add more descriptive notes based on account type and balances
       notes:
@@ -440,7 +457,7 @@ const USDARebudgetTool = () => {
 
     // Calculate totals - find the actual total row from WRS or calculate it
     let totalsRow = data.find(
-      (row) =>
+      (row: any) =>
         row.description.includes("Total(Net)") ||
         row.description.includes("Total FYTD Change") ||
         row.account.includes("40000-59999")
@@ -450,7 +467,7 @@ const USDARebudgetTool = () => {
       // If no total row found, calculate totals from individual accounts
       // But exclude revenue and summary rows to avoid double-counting
       const accountsToSum = data.filter(
-        (row) =>
+        (row: any) =>
           !row.description.includes("Total") &&
           !row.account.includes("40000-49999") && // Exclude revenue
           row.account.match(/^\d/) // Only numeric account codes
@@ -460,23 +477,23 @@ const USDARebudgetTool = () => {
         account: "CALCULATED_TOTAL",
         description: "Project Totals (Calculated)",
         current_budget: accountsToSum.reduce(
-          (sum, row) => sum + row.current_budget,
+          (sum: number, row: any) => sum + row.current_budget,
           0
         ),
         month_activity: accountsToSum.reduce(
-          (sum, row) => sum + row.month_activity,
+          (sum: number, row: any) => sum + row.month_activity,
           0
         ),
         ptd_activity: accountsToSum.reduce(
-          (sum, row) => sum + row.ptd_activity,
+          (sum: number, row: any) => sum + row.ptd_activity,
           0
         ),
         encumbrances: accountsToSum.reduce(
-          (sum, row) => sum + row.encumbrances,
+          (sum: number, row: any) => sum + row.encumbrances,
           0
         ),
         balance_available: accountsToSum.reduce(
-          (sum, row) => sum + row.balance_available,
+          (sum: number, row: any) => sum + row.balance_available,
           0
         ),
         notes: "Calculated from individual accounts",
@@ -515,9 +532,12 @@ const USDARebudgetTool = () => {
   };
 
   // Helper for updating multiple fields at once
-  const updatePersonnelMultiple = (id, updates) => {
+  const updatePersonnelMultiple = (
+    id: string | number,
+    updates: Record<string, any>
+  ) => {
     setPersonnel((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      prev.map((p: any) => (p.id === id ? { ...p, ...updates } : p))
     );
   };
 
@@ -640,17 +660,20 @@ const USDARebudgetTool = () => {
     });
 
     // Calculate total project needs
-    const totalPersonnelCost = costs.reduce((sum, c) => sum + c.total_cost, 0);
-    const totalAvailable =
-      currentSnapshot.find(
-        (row) =>
-          row.account === "CALCULATED_TOTAL" ||
-          row.description.includes("Total(Net)")
-      )?.balance_available || 0;
+      const totalPersonnelCost = costs.reduce(
+        (sum: number, c: any) => sum + c.total_cost,
+        0
+      );
+      const totalAvailable =
+        currentSnapshot.find(
+          (row: any) =>
+            row.account === "CALCULATED_TOTAL" ||
+            row.description.includes("Total(Net)")
+        )?.balance_available || 0;
 
     // Generate new budget allocation using REAL WRS account numbers
     const newBudgetItems = [];
-    costs.forEach((cost) => {
+      costs.forEach((cost: any) => {
       if (cost.prorated_salary > 0) {
         let accountNumber;
         if (cost.type === "graduate" || cost.type === "hourly") {
@@ -751,7 +774,7 @@ const USDARebudgetTool = () => {
     generateMonthlyBurn(costs);
   };
 
-  const calculateMonths = (startDate, endDate) => {
+  const calculateMonths = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     return (
@@ -762,7 +785,7 @@ const USDARebudgetTool = () => {
     );
   };
 
-  const generateMonthlyBurn = (costs: any) => {
+  const generateMonthlyBurn = (costs: any[]) => {
     const months = [];
     const startDate = new Date("2025-09-01"); // Assume fiscal year start
     const endDate = new Date(projectEnd);
@@ -776,7 +799,7 @@ const USDARebudgetTool = () => {
       const monthKey = d.toISOString().slice(0, 7);
 
       let monthlyTotal = 0;
-      costs.forEach((cost) => {
+    costs.forEach((cost: any) => {
         const personStart = new Date(cost.start_date);
         const personEnd = new Date(cost.end_date);
 
