@@ -13,6 +13,7 @@ import {
   FineTunePanel,
   ProjectedBudgetTable,
   projectWithTransfers
+
 } from "./FineTune.compat.fixed";
 
 type RatesData = import("./FineTune.compat.fixed").RatesData;
